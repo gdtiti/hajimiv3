@@ -20,6 +20,9 @@ class APIKeyManager:
             else:
                 break
 
+        # 加载并处理API端点配置
+        self.api_endpoints = settings.GEMINI_API_ENDPOINTS.split(',') if ',' in settings.GEMINI_API_ENDPOINTS else [settings.GEMINI_API_ENDPOINTS]
+        
         self.key_stack = [] # 初始化密钥栈
         self._reset_key_stack() # 初始化时创建随机密钥栈
         self.scheduler = BackgroundScheduler()
@@ -58,11 +61,23 @@ class APIKeyManager:
             logger.error(log_msg)
             return None
 
+    async def get_random_endpoint(self):
+        """从配置的端点列表中随机选择一个端点"""
+        return random.choice(self.api_endpoints)
+
     def show_all_keys(self):
         log_msg = format_log_message('INFO', f"当前可用API key个数: {len(self.api_keys)} ")
         logger.info(log_msg)
         for i, api_key in enumerate(self.api_keys):
             log_msg = format_log_message('INFO', f"API Key{i}: {api_key[:8]}...{api_key[-3:]}")
+            logger.info(log_msg)
+
+    def show_all_endpoints(self):
+        """显示所有配置的API端点"""
+        log_msg = format_log_message('INFO', f"当前配置的API端点个数: {len(self.api_endpoints)} ")
+        logger.info(log_msg)
+        for i, endpoint in enumerate(self.api_endpoints):
+            log_msg = format_log_message('INFO', f"端点{i}: {endpoint}")
             logger.info(log_msg)
 
     # def blacklist_key(self, key):
@@ -78,7 +93,9 @@ async def test_api_key(api_key: str) -> bool:
     """
     try:
         import httpx
-        url = "https://generativelanguage.googleapis.com/v1beta/models?key={}".format(api_key)
+        api_manager = APIKeyManager()
+        endpoint = await api_manager.get_random_endpoint()
+        url = f"{endpoint}/v1beta/models?key={api_key}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()

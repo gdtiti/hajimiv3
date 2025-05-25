@@ -8,6 +8,7 @@ import httpx
 import secrets
 import string
 import app.config.settings as settings
+from app.utils.api_key import APIKeyManager
 
 from app.utils.logging import log
 
@@ -143,6 +144,7 @@ class GeminiClient:
 
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self.api_key_manager = APIKeyManager()
 
     # 请求参数处理
     def _convert_request_data(self, request, contents, safety_settings, system_instruction):

@@ -10,6 +10,7 @@ import secrets
 import string
 from app.utils import format_log_message
 import app.config.settings as settings
+from app.utils.api_key import APIKeyManager
 
 from app.utils.logging import log
 
@@ -30,6 +31,7 @@ class OpenAIClient:
 
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self.api_key_manager = APIKeyManager()
 
     def filter_data_by_whitelist(data, allowed_keys):
         """
@@ -46,6 +48,10 @@ class OpenAIClient:
         # 使用字典推导式创建过滤后的新字典
         filtered_data = {key: value for key, value in data.items() if key in allowed_keys_set}
         return filtered_data
+    
+    async def _get_base_url(self):
+        """获取随机API基础URL"""
+        return await self.api_key_manager.get_random_endpoint()
     
     # 真流式处理
     async def stream_chat(self, request: ChatCompletionRequest):
@@ -65,7 +71,8 @@ class OpenAIClient:
         log('INFO', "流式请求开始", extra=extra_log)
 
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        base_url = await self._get_base_url()
+        url = f"{base_url}/v1beta/openai/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
