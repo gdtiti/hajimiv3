@@ -527,10 +527,16 @@ async def update_config(config_data: dict):
         
         elif config_key == "gemini_api_keys":
             if not isinstance(config_value, str):
-                raise HTTPException(status_code=422, detail="参数类型错误：API密钥应为逗号分隔的字符串")
+                raise HTTPException(status_code=422, detail="参数类型错误：API密钥应为逗号分隔或换行符分隔的字符串")
             
-            # 分割并清理API密钥
-            new_keys = [key.strip() for key in config_value.split(',') if key.strip()]
+            # 先按换行符分割，再按逗号分割，支持多种格式
+            new_keys = []
+            lines = config_value.split('\n')
+            for line in lines:
+                # 对每一行按逗号分割
+                keys_in_line = [key.strip() for key in line.split(',') if key.strip()]
+                new_keys.extend(keys_in_line)
+            
             if not new_keys:
                 raise HTTPException(status_code=400, detail="未提供有效的API密钥")
             
