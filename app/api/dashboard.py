@@ -529,13 +529,23 @@ async def update_config(config_data: dict):
             if not isinstance(config_value, str):
                 raise HTTPException(status_code=422, detail="参数类型错误：API密钥应为逗号分隔或换行符分隔的字符串")
             
+            # 预处理：去除整个输入字符串的前后空白
+            config_value = config_value.strip()
+            
             # 先按换行符分割，再按逗号分割，支持多种格式
             new_keys = []
-            lines = config_value.split('\n')
+            # 使用splitlines()处理各种换行符(\n, \r\n, \r)
+            lines = config_value.splitlines()
             for line in lines:
-                # 对每一行按逗号分割
+                # 跳过空行
+                if not line.strip():
+                    continue
+                # 对每一行按逗号分割，确保去除每个密钥的前后空格
                 keys_in_line = [key.strip() for key in line.split(',') if key.strip()]
                 new_keys.extend(keys_in_line)
+            
+            # 确保没有空字符串
+            new_keys = [key for key in new_keys if key]
             
             if not new_keys:
                 raise HTTPException(status_code=400, detail="未提供有效的API密钥")
@@ -655,10 +665,10 @@ def check_api_key_in_thread(key):
     try:
         is_valid = loop.run_until_complete(test_api_key(key))
         if is_valid:
-            log('info', f"API密钥 {key[:8]}... 有效")
+            log('info', f"API密钥 {key}... 有效")
             return key, True
         else:
-            log('warning', f"API密钥 {key[:8]}... 无效")
+            log('warning', f"API密钥 {key}... 无效")
             return key, False
     finally:
         loop.close()
