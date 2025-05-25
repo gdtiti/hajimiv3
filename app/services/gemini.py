@@ -276,8 +276,10 @@ class GeminiClient:
         
         api_version, model, data = self._convert_request_data(request, contents, safety_settings, system_instruction)
         
+        # 获取随机端点
+        endpoint = await self.api_key_manager.get_random_endpoint()
+        url = f"{endpoint}/{api_version}/models/{model}:streamGenerateContent?key={self.api_key}&alt=sse"
         
-        url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model}:streamGenerateContent?key={self.api_key}&alt=sse"
         headers = {
             "Content-Type": "application/json",
         }
@@ -322,7 +324,10 @@ class GeminiClient:
 
         api_version, model, data = self._convert_request_data(request, contents, safety_settings, system_instruction)
         
-        url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model}:generateContent?key={self.api_key}"
+        # 获取随机端点
+        endpoint = await self.api_key_manager.get_random_endpoint()
+        url = f"{endpoint}/{api_version}/models/{model}:generateContent?key={self.api_key}"
+        
         headers = {
             "Content-Type": "application/json",
         }
@@ -457,8 +462,11 @@ class GeminiClient:
 
     @staticmethod
     async def list_available_models(api_key) -> list:
-        url = "https://generativelanguage.googleapis.com/v1beta/models?key={}".format(
-            api_key)
+        # 创建临时 APIKeyManager 实例来获取随机端点
+        api_manager = APIKeyManager()
+        endpoint = await api_manager.get_random_endpoint()
+        url = f"{endpoint}/v1beta/models?key={api_key}"
+        
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()
